@@ -19,6 +19,7 @@ import androidx.fragment.app.Fragment
 import com.example.fitjourney.R
 import com.example.fitjourney.databinding.FragmentDashBoardBinding
 import com.example.fitjourney.util.NotificationUtil
+import com.example.fitjourney.util.SharedPreferencesUtil
 
 class DashBoardFragment : Fragment(), SensorEventListener {
 
@@ -42,15 +43,23 @@ class DashBoardFragment : Fragment(), SensorEventListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         init()
-        binding.pbStepsCount.max = dailyGoalSteps
     }
 
     private fun init() {
         requestPermission()
+        retrieveDataFromSharedPreferences()
         setUpListeners()
     }
 
+    @SuppressLint("SetTextI18n")
+    private fun retrieveDataFromSharedPreferences() {
+        dailyGoalSteps = SharedPreferencesUtil.getStepGoal(requireContext())
+        binding.pbStepsCount.max = dailyGoalSteps
+        binding.tvGoal.text = "Daily goal: $dailyGoalSteps Steps" // Show saved goal
+    }
+
     private fun requestPermission() {
+        // Check for ACTIVITY_RECOGNITION permission
         if (ContextCompat.checkSelfPermission(
                 requireContext(), Manifest.permission.ACTIVITY_RECOGNITION
             ) != PackageManager.PERMISSION_GRANTED
@@ -65,6 +74,24 @@ class DashBoardFragment : Fragment(), SensorEventListener {
         } else {
             initializeStepSensors()
         }
+
+        // Check for POST_NOTIFICATIONS permission (for Android 13 and above)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    requireContext(), Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                // Request notification permission
+                ActivityCompat.requestPermissions(
+                    requireActivity(),
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    2 // You can define a different request code for notifications
+                )
+            }
+        } else {
+            // If the OS is below Android 13, no need to request permission
+            NotificationUtil.createNotificationChannel(requireContext()) // Create notification channel if needed
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -73,9 +100,12 @@ class DashBoardFragment : Fragment(), SensorEventListener {
             val goalInput = binding.etStepGoal.text.toString().trim()
             if (goalInput.isNotEmpty()) {
                 dailyGoalSteps = goalInput.toInt()
+                // Save updated goal to SharedPreferences
+                SharedPreferencesUtil.saveStepGoal(requireContext(), dailyGoalSteps)
                 binding.pbStepsCount.max = dailyGoalSteps
                 binding.tvGoal.text = "Daily goal: $dailyGoalSteps Steps"
                 updateUI()
+                requestPermission()
                 // Check if the new goal has already been achieved
                 if (totalSteps >= dailyGoalSteps) {
                     sendGoalAchievedNotification()
@@ -85,8 +115,7 @@ class DashBoardFragment : Fragment(), SensorEventListener {
                     requireContext(),
                     getString(R.string.enter_valid_number),
                     Toast.LENGTH_SHORT
-                )
-                    .show()
+                ).show()
             }
         }
     }
@@ -199,8 +228,10 @@ class DashBoardFragment : Fragment(), SensorEventListener {
 
     override fun onPause() {
         super.onPause()
+        if (::sensorManager.isInitialized){
         sensorManager.unregisterListener(this)
-    }
+    }}
+
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
     }

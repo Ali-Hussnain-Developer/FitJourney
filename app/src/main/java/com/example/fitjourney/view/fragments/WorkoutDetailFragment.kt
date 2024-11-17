@@ -3,10 +3,10 @@ package com.example.fitjourney.view.fragments
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.CountDownTimer
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import com.example.fitjourney.R
 import com.example.fitjourney.databinding.FragmentWorkoutDetailBinding
 import com.example.fitjourney.enum.WorkoutName
@@ -85,7 +85,10 @@ class WorkoutDetailFragment : Fragment() {
             @SuppressLint("SetTextI18n")
             override fun onTick(millisUntilFinished: Long) {
                 val secondsRemaining = millisUntilFinished / 1000
-                binding.tvWorkoutTimer.text = "00:${secondsRemaining.toString().padStart(2, '0')}"
+                if (isAdded && view != null) {
+                    binding.tvWorkoutTimer.text =
+                        "00:${secondsRemaining.toString().padStart(2, '0')}"
+                }
             }
 
             override fun onFinish() {

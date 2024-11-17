@@ -34,6 +34,7 @@ class WorkoutFragment : Fragment(), WorkoutAdapter.WorkoutAdapterCallbacks {
     }
 
     private fun setUpRecyclerView() {
+        binding.workoutRecyclerView.setHasFixedSize(true)
         binding.workoutRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.workoutRecyclerView.adapter =
             WorkoutAdapter(WorkOutDataUtil.workoutList(), this)
