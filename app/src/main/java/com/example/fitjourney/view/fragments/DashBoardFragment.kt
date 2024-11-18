@@ -1,3 +1,4 @@
+/*
 package com.example.fitjourney.view.fragments
 
 import android.Manifest
@@ -238,3 +239,197 @@ class DashBoardFragment : Fragment(), SensorEventListener {
 }
 
 
+*/
+package com.example.fitjourney.view.fragments
+
+import android.annotation.SuppressLint
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import com.example.fitjourney.R
+import com.example.fitjourney.databinding.FragmentDashBoardBinding
+import com.example.fitjourney.util.NotificationUtil
+import com.example.fitjourney.util.PermissionUtil
+import com.example.fitjourney.util.SharedPreferencesUtil
+import com.example.fitjourney.util.StepSensorManager
+
+class DashBoardFragment : Fragment() {
+    private var _binding: FragmentDashBoardBinding? = null
+    private val binding get() = _binding!!
+
+    private lateinit var permissionUtil: PermissionUtil
+    private lateinit var stepSensorManager: StepSensorManager
+
+    private var dailyGoalSteps = 10000
+    private var totalSteps = 0
+    private var caloriesBurned = 0.0
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentDashBoardBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        init()
+    }
+
+    private fun init() {
+        permissionUtil = PermissionUtil(requireActivity())
+        stepSensorManager = StepSensorManager(requireContext())
+        retrieveDataFromSharedPreferences()
+        setUpListeners()
+        requestPermissions()
+    }
+
+    private fun requestPermissions() {
+        permissionUtil.checkAndRequestActivityRecognitionPermission { granted ->
+            if (granted) {
+                initializeStepTracking()
+            } else {
+                showStepsPermissionNeededToast()
+            }
+        }
+
+        permissionUtil.checkAndRequestNotificationPermission { granted ->
+            if (granted) {
+                NotificationUtil.createNotificationChannel(requireContext())
+            } else {
+                showNotificationPermissionNeededToast()
+            }
+        }
+    }
+
+    private fun initializeStepTracking() {
+        if (stepSensorManager.areSensorsAvailable()) {
+            stepSensorManager.startTracking { steps ->
+                totalSteps = steps
+                updateUI()
+                calculateCalories()
+                checkGoalCompletion()
+            }
+        } else {
+            showSensorNotAvailableToast()
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun retrieveDataFromSharedPreferences() {
+        dailyGoalSteps = SharedPreferencesUtil.getStepGoal(requireContext())
+        binding.pbStepsCount.max = dailyGoalSteps
+        binding.tvGoal.text = "$dailyGoalSteps Steps"
+    }
+
+    private fun setUpListeners() {
+        binding.btnSetGoal.setOnClickListener {
+            handleGoalUpdate()
+        }
+    }
+
+    private fun handleGoalUpdate() {
+        val goalInput = binding.etStepGoal.text.toString().trim()
+        if (goalInput.isNotEmpty()) {
+            dailyGoalSteps = goalInput.toInt()
+            SharedPreferencesUtil.saveStepGoal(requireContext(), dailyGoalSteps)
+            updateGoalUI()
+            if (totalSteps >= dailyGoalSteps) {
+                sendGoalAchievedNotification()
+            }
+        } else {
+            showInvalidNumberToast()
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun updateGoalUI() {
+        binding.pbStepsCount.max = dailyGoalSteps
+        binding.tvGoal.text = "$dailyGoalSteps Steps"
+        updateUI()
+    }
+
+    private fun sendGoalAchievedNotification() {
+        NotificationUtil.showNotification(
+            context = requireContext(),
+            notificationId = 1,
+            title = getString(R.string.goal_achieved),
+            message = "Congratulations! You've achieved your daily step goal of $dailyGoalSteps steps."
+        )
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun calculateCalories() {
+        caloriesBurned = totalSteps * 0.04
+        binding.tvCaloriesBurned.text = "%.2f".format(caloriesBurned)
+    }
+
+    private fun checkGoalCompletion() {
+        if (totalSteps >= dailyGoalSteps) {
+            sendGoalAchievedNotification()
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun updateUI() {
+        binding.tvSteps.text = "Steps Today: $totalSteps"
+        binding.pbStepsCount.progress = totalSteps
+    }
+
+    private fun showStepsPermissionNeededToast() {
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.permission_needed_for_step_counter),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun showNotificationPermissionNeededToast() {
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.permission_needed_for_notification),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun showSensorNotAvailableToast() {
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.step_counter_sensor_not_available),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun showInvalidNumberToast() {
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.enter_valid_number),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        stepSensorManager.startTracking { steps ->
+            totalSteps = steps
+            updateUI()
+            calculateCalories()
+            checkGoalCompletion()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stepSensorManager.stopTracking()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}

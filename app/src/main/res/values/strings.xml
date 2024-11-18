@@ -7,13 +7,20 @@
     <string name="workout">Workout</string>
     <string name="dashboard">Dashboard</string>
     <string name="enter_your_daily_step_goal">Enter your daily step goal</string>
-    <string name="calories_burned_0">Calories Burned: 0</string>
-    <string name="daily_goal_10_000">Daily Goal: 10,000 Steps</string>
-    <string name="steps_today_0">Steps today: 0</string>
+    <string name="calories_burned_0">0</string>
+    <string name="daily_goal_10_000">10,000 Steps</string>
+    <string name="steps_today_0">Steps Today: 0</string>
     <string name="set_goal">Set Goal</string>
     <string name="goal_achieved">Goal Achieved!</string>
     <string name="step__detector_sensor_not_available">Step Detector Sensor not available!</string>
     <string name="step_counter_sensor_not_available">Step Counter Sensor not available!</string>
     <string name="enter_valid_number">Please enter a number</string>
     <string name="permission_needed_for_step_counter">Permission needed for step counter</string>
+    <string name="permission_needed_for_notification">Permission needed for Notification</string>
+    <string name="step_tracker">Step Tracker</string>
+    <string name="goal">Daily Goal</string>
+    <string name="calories">Calories Burned</string>
+    <string name="set_new_goal">Set New Goal</string>
+    <string name="workout_timer">Workout Timer</string>
+    <string name="description">Description</string>
 </resources>
